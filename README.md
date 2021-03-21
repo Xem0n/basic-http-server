@@ -7,5 +7,5 @@ For now, it's very vulnerable and offers support for small amount of file types,
 
 ## Usage
 First, compile using Makefile.  
-Then, run like a normal console program. Enter the port you want to use as an argument.
-Put your files in public_html folder.
+Then, run like a normal console program. Enter the port you want to use as an argument.  
+Put your files in public_html folder.  
