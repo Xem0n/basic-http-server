@@ -1,3 +1,6 @@
+#ifndef CONNECTION_H
+#define CONNECTION_H
+
 #include "libs/Socket.h"
 #include <vector>
 #include <map>
@@ -32,3 +35,5 @@ class Connection {
                        std::string mime = "text/plain;charset=utf-8");
     void print_logs();
 };
+
+#endif
