@@ -15,12 +15,17 @@ class Connection {
 
   private:
     Socket* conn;
+
     std::vector<std::string> data;
     std::map<std::string, std::string> header;
+
     std::chrono::time_point<std::chrono::system_clock> start_time;
 
-    void get_data();
-    void get_header();
+    bool check_request();
+    void prepare_response();
+
+    bool get_data();
+    bool get_header();
 
     bool is_http();
     bool is_path_correct();

@@ -43,72 +43,90 @@ Connection::Connection(Socket* conn)
   this->conn = conn;
 }
 
+// Main wrapper function
 void Connection::run()
 {
   start_time = std::chrono::system_clock::now();
 
-  this->get_data();
-  
-  if (this->data.size() < 2) {
-    this->send_response("400 Bad Request", 400, "Bad Request");
+  if (!check_request()) return;
 
-    return;
-  }
+  prepare_response();
 
-  this->get_header();
+  print_logs();
+}
 
-  if (this->header.empty() || !this->is_http()) {
-    this->send_response("400 Bad Request", 400, "Bad Request");
+// Checks whether request can be handled by the server
+// If not, send a proper fallback response
+bool Connection::check_request()
+{
+  return get_data() &&
+         get_header() &&
+         is_http() &&
+         is_path_correct();
+}
 
-    return;
-  }
-
-  // This method returns response on it's own
-  if (!this->is_path_correct()) return;
-
-  std::string data = this->read_file();
-  std::string mime = this->get_mime();
+void Connection::prepare_response()
+{
+  std::string data = read_file();
+  std::string mime = get_mime();
 
   // Both data and mime return '\0' when request is invalid
   // Or can't be handled by server
   if (data == "\0" || mime == "\0") return;
 
-  this->send_response(data, 200, "OK", mime);
-  this->print_logs();
+  send_response(data, 200, "OK", mime);
 }
 
-void Connection::get_data()
+bool Connection::get_data()
 {
   std::vector<std::string> data;
   std::string line = conn->ReceiveLine();
 
-  // HTTP Request always ends with an empty line
+  // HTTP request always ends with an empty line
   while (line != ENDLINE) {
     data.push_back(line);
     line = conn->ReceiveLine();
   }
 
+  if (data.size() < 2) {
+    send_response("400 Bad Request", 400, "Bad Request");
+
+    return false;
+  }
+
   this->data = data;
+
+  return true;
 }
 
-void Connection::get_header()
+bool Connection::get_header()
 {
-  std::vector<std::string> split_data = split_string(this->data[0], " ");
+  std::vector<std::string> split_data = split_string(data[0], " ");
 
   if (split_data.size() != 3) {
-    return;
+    send_response("400 Bad Request", 400, "Bad Request");
+
+    return false;
   }
   
-  this->header = {
+  header = {
     {"method", split_data[0]},
     {"path", split_data[1]},
     {"version", split_data[2]}
   };
+
+  return true;
 }
 
 bool Connection::is_http()
 {
-  return (header["version"] == (std::string)"HTTP/1.1" + ENDLINE);
+  if (header["version"] == (std::string)"HTTP/1.1" + ENDLINE) {
+    return true;
+  } else {
+    send_response("400 Bad Request", 400, "Bad Request");
+
+    return false;
+  }
 }
 
 bool Connection::is_path_correct()
@@ -130,6 +148,7 @@ bool Connection::is_path_correct()
   return true;
 }
 
+// Read file (from header)
 std::string Connection::read_file()
 {
   std::string contents = "";
@@ -138,7 +157,7 @@ std::string Connection::read_file()
   std::ifstream file(path_to, std::ios::binary);
 
   if (!file.is_open()) {
-    this->send_response("404 Not Found", 404, "Not Found");
+    send_response("404 Not Found", 404, "Not Found");
 
     return "\0";
   }
@@ -166,7 +185,7 @@ std::string Connection::get_mime()
   std::string extension = header["path"].substr(pos + 1, header["path"].length() - pos);
 
   if (MIME.find(extension) == MIME.end()) {
-    this->send_response("403 Forbidden", 403, "Forbidden");
+    send_response("403 Forbidden", 403, "Forbidden");
 
     return "\0";
   } else {
@@ -184,9 +203,9 @@ void Connection::redirect(std::string path_to)
 }
 
 void Connection::send_response(std::string data,
-                  int status,
-                  std::string status_text,
-                  std::string mime)
+                               int status,
+                               std::string status_text,
+                               std::string mime)
 {
   conn->SendLine("HTTP/1.1 " + std::to_string(status) + " " + status_text);
   conn->SendLine("Content-Type: " + mime);
