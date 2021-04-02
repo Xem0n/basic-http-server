@@ -1,7 +1,7 @@
 # Basic HTTP Server written in C++
 ## About
 I've made it to learn about sockets and HTTP protocol itself.  
-For now, it's very vulnerable and offers support for small amount of file types, but I want to enhance this project and maybe add some kind of middleware in future.
+For now, it's very vulnerable and offers support for a small number of file types, but I want to enhance this project and maybe add some kind of middleware in the future.
 
 [Library used to manage sockets](https://github.com/ReneNyffenegger/Socket.cpp)
 
